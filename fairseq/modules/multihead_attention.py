@@ -960,11 +960,11 @@ class RelMultiheadAttention(nn.Module):
        # mask = seq_len_to_mask(seq_len).bool().unsqueeze(1).unsqueeze(1)  # .cuda()
         #  logging.info(mask.shape)
         # logging.info(attn_score_raw.shape)
-        seq_len = torch.max(pos_s, 1)[0] - 1
-
+       # seq_len = torch.max(pos_s, 1)[0] - 1
+        attn_weights=attn_weights_raw
         #attn_score_raw_masked = attn_score_raw.masked_fill(~mask, -1e15)
-        mask = seq_len_to_mask(seq_len).bool().unsqueeze(1).unsqueeze(1)
-        attn_weights= attn_weights_raw.masked_fill(mask, -1e15)
+       # mask = seq_len_to_mask(seq_len).bool().unsqueeze(1).unsqueeze(1)
+       # attn_weights= attn_weights_raw.masked_fill(mask, -1e15)
         #logging.info(seq_len)
         #logging.info(mask)
 
@@ -975,7 +975,7 @@ class RelMultiheadAttention(nn.Module):
 #############################################################################
      #   attn_weights = torch.bmm(q, k.transpose(1, 2))
       #  attn_weights = self.apply_sparse_mask(attn_weights, tgt_len, src_len, bsz)
-        logging.info(attn_weights)
+        #logging.info(attn_weights)
 
         assert list(attn_weights.size()) == [bsz * self.num_heads, tgt_len, src_len]
 
