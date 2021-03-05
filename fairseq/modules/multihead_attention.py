@@ -593,25 +593,9 @@ class RelMultiheadAttention(nn.Module):
             nn.Linear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
         )
 #################################################
-        self.padding_idx=1
-        self.max_target_positions=512
-        self.embed_positions = (
-            PositionalEmbedding(
-                self.max_target_positions,
-                embed_dim,
-                self.padding_idx,
-            ))
-        self.ff_final = nn.Linear(embed_dim, embed_dim)
         self.u = nn.Parameter(torch.Tensor(num_heads, self.head_dim))
         self.v = nn.Parameter(torch.Tensor(num_heads, self.head_dim))
-
-        self.w_k = nn.Linear(embed_dim, embed_dim)
-        self.w_q = nn.Linear(embed_dim, embed_dim)
-        self.w_v = nn.Linear(embed_dim, embed_dim)
         self.w_r = nn.Linear(embed_dim, embed_dim)
-        self.w_final = nn.Linear(embed_dim, embed_dim)
-
-        self.learnable_position=False
         self.pos_fusion_forward=nn.Sequential(nn.Linear(embed_dim , embed_dim),
                            nn.ReLU(inplace=True))
 
