@@ -612,7 +612,7 @@ class RelMultiheadAttention(nn.Module):
         self.w_final = nn.Linear(embed_dim, embed_dim)
 
         self.learnable_position=False
-        pe = get_embedding(384, embed_dim, rel_pos_init=0)
+        pe = get_embedding(512, embed_dim, rel_pos_init=0)
         self.pos_fusion_forward=nn.Sequential(nn.Linear(embed_dim , embed_dim),
                            nn.ReLU(inplace=True))
         self.pe = nn.Parameter(pe, requires_grad=False)
@@ -888,7 +888,7 @@ class RelMultiheadAttention(nn.Module):
         pos_ee = pos_e.unsqueeze(-1)-pos_e.unsqueeze(-2)
         #logging.info(pos_ss.shape)
         #pe_ss = self.embed_positions(pos_ss.view(-1)+384).view(size=[bsz,src_len,tgt_len,-1])
-        pe_ss = self.pe[(pos_ss).view(-1)+384].view(size=[bsz,src_len,tgt_len,-1])
+        pe_ss = self.pe[(pos_ss).view(-1)+512].view(size=[bsz,src_len,tgt_len,-1])
 
         #logging.info(pe_ss)
 
