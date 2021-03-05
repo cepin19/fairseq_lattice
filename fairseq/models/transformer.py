@@ -365,13 +365,6 @@ class TransformerEncoder(FairseqEncoder):
         self.embed_tokens = embed_tokens
 
         self.embed_scale = 1.0 if args.no_scale_embedding else math.sqrt(embed_dim)
-        ###########
-        if self.lattice:
-            pe = get_embedding(args.max_source_positions, embed_dim, rel_pos_init=0)
-            self.pe = nn.Parameter(pe, requires_grad=False)
-            self.pos_fusion_forward=nn.Sequential(nn.Linear(4*embed_dim , embed_dim),
-                               nn.ReLU(inplace=True))
-        #############xx
         self.embed_positions = (
             PositionalEmbedding(
                 args.max_source_positions,
@@ -382,6 +375,15 @@ class TransformerEncoder(FairseqEncoder):
             if not args.no_token_positional_embeddings
             else None
         )
+        ###########
+        if self.lattice:
+            pe = self.embed_positions.weights
+            #pe = get_embedding(args.max_source_positions, embed_dim, rel_pos_init=0)
+            self.pe = nn.Parameter(pe, requires_grad=False)
+            self.pos_fusion_forward=nn.Sequential(nn.Linear(4*embed_dim , embed_dim),
+                               nn.ReLU(inplace=True))
+        #############xx
+
 
         if getattr(args, "layernorm_embedding", False):
             self.layernorm_embedding = LayerNorm(embed_dim)
@@ -524,14 +526,16 @@ class TransformerEncoder(FairseqEncoder):
             x, encoder_embedding = self.forward_embedding_no_pos(src_tokens, token_embeddings)
             pos_s,pos_e = utils.make_relative_positions(
             src_tokens, self.padding_idx,dictionary=self.dictionary)
+            #pos_s=pos_e = utils.make_positions(
+            #src_tokens, self.padding_idx)
             pos_ss = pos_s.unsqueeze(-1) - pos_s.unsqueeze(-2)
             pos_se = pos_s.unsqueeze(-1) - pos_e.unsqueeze(-2)
             pos_es = pos_e.unsqueeze(-1) - pos_s.unsqueeze(-2)
             pos_ee = pos_e.unsqueeze(-1) - pos_e.unsqueeze(-2)
-            pe_ss = self.pe[(pos_ss).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
-            pe_se = self.pe[(pos_se).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
-            pe_es = self.pe[(pos_es).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
-            pe_ee = self.pe[(pos_ee).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_ss = self.pe[(pos_ss).view(-1)].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_se = self.pe[(pos_se).view(-1)].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_es = self.pe[(pos_es).view(-1)].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_ee = self.pe[(pos_ee).view(-1)].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
             pe_4 = torch.cat([pe_ss,pe_se,pe_es,pe_ee],dim=-1)
 
             pos_fused=self.pos_fusion_forward(pe_4)
@@ -680,7 +684,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         super().__init__(dictionary)
         self.register_buffer("version", torch.Tensor([3]))
         self._future_mask = torch.empty(0)
-
+        self.lattice=getattr(args,"lattice",False)
         self.dropout_module = FairseqDropout(
             args.dropout, module_name=self.__class__.__name__
         )
@@ -698,7 +702,12 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         self.embed_tokens = embed_tokens
 
         self.embed_scale = 1.0 if args.no_scale_embedding else math.sqrt(embed_dim)
-
+        if self.lattice=="asd":
+            # pe = self.embed_tokens.weight
+            pe = get_embedding(args.max_source_positions, embed_dim, rel_pos_init=0)
+            self.pe = nn.Parameter(pe, requires_grad=False)
+            self.pos_fusion_forward = nn.Sequential(nn.Linear(4 * embed_dim, embed_dim),
+                                                    nn.ReLU(inplace=True))
         if not args.adaptive_input and args.quant_noise_pq > 0:
             self.quant_noise = apply_quant_noise_(
                 nn.Linear(embed_dim, embed_dim, bias=False),
