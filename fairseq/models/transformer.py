@@ -529,7 +529,12 @@ class TransformerEncoder(FairseqEncoder):
             pos_es = pos_e.unsqueeze(-1) - pos_s.unsqueeze(-2)
             pos_ee = pos_e.unsqueeze(-1) - pos_e.unsqueeze(-2)
             pe_ss = self.pe[(pos_ss).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
-            pos_fused=self.pos_fusion_forward(pe_ss)
+            pe_se = self.pe[(pos_se).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_es = self.pe[(pos_es).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_ee = self.pe[(pos_ee).view(-1) + self.max_source_positions].view(size=[src_tokens.size(0), src_tokens.size(1), src_tokens.size(1), -1])
+            pe_4 = torch.cat([pe_ss,pe_se,pe_es,pe_ee],dim=-1)
+
+            pos_fused=self.pos_fusion_forward(pe_4)
 
         else:
             x, encoder_embedding = self.forward_embedding(src_tokens, token_embeddings)

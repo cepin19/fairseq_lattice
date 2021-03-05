@@ -908,7 +908,7 @@ class RelMultiheadAttention(nn.Module):
         # batch * seq_len * n_head * d_head
         k2 = torch.reshape(k, [bsz, tgt_len, self.num_heads, self.head_dim])
         q2 = torch.reshape(q, [bsz, src_len, self.num_heads, self.head_dim])
-        v2 = torch.reshape(v, [bsz, tgt_len, self.num_heads, self.head_dim])
+        #v2 = torch.reshape(v, [bsz, tgt_len, self.num_heads, self.head_dim])
         rel_pos_embedding = torch.reshape(rel_pos_embedding,
                                           [bsz,src_len, tgt_len, self.num_heads,self.head_dim])
 
@@ -916,7 +916,7 @@ class RelMultiheadAttention(nn.Module):
         # batch * n_head * seq_len * d_head
         k2 = k2.transpose(1, 2)
         q2 = q2.transpose(1, 2)
-        v2 = v2.transpose(1, 2)
+        #v2 = v2.transpose(1, 2)
 
 
 
