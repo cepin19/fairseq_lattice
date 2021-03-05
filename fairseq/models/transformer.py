@@ -369,7 +369,7 @@ class TransformerEncoder(FairseqEncoder):
         if self.lattice:
             pe = get_embedding(args.max_source_positions, embed_dim, rel_pos_init=0)
             self.pe = nn.Parameter(pe, requires_grad=False)
-            self.pos_fusion_forward=nn.Sequential(nn.Linear(embed_dim , embed_dim),
+            self.pos_fusion_forward=nn.Sequential(nn.Linear(4*embed_dim , embed_dim),
                                nn.ReLU(inplace=True))
         #############xx
         self.embed_positions = (
