@@ -117,7 +117,7 @@ class TransformerEncoderLayer(nn.Module):
                     state_dict["{}.{}.{}".format(name, new, m)] = state_dict[k]
                     del state_dict[k]
 
-    def forward(self, x, encoder_padding_mask: Optional[Tensor], pos_s=None, pos_e=None,attn_mask: Optional[Tensor] = None):
+    def forward(self, x, encoder_padding_mask: Optional[Tensor], pos_fused :Optional[Tensor]=None,attn_mask: Optional[Tensor] = None):
         """
         Args:
             x (Tensor): input to the layer of shape `(seq_len, batch, embed_dim)`
@@ -149,8 +149,7 @@ class TransformerEncoderLayer(nn.Module):
                 query=x,
                 key=x,
                 value=x,
-                pos_s=pos_s,
-                pos_e=pos_e,
+                pos_fused=pos_fused,
                 key_padding_mask=encoder_padding_mask,
                 need_weights=False,
                 attn_mask=attn_mask,
