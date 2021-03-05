@@ -113,6 +113,8 @@ class TransformerModel(FairseqEncoderDecoderModel):
                             help='activation function to use')
         parser.add_argument('--dropout', type=float, metavar='D',
                             help='dropout probability')
+        parser.add_argument("--lattice", action="store_true",
+                           help="lattice")
         parser.add_argument('--attention-dropout', type=float, metavar='D',
                             help='dropout probability for attention weights')
         parser.add_argument('--activation-dropout', '--relu-dropout', type=float, metavar='D',
@@ -328,7 +330,7 @@ class TransformerEncoder(FairseqEncoder):
         self.args = args
         super().__init__(dictionary)
         self.register_buffer("version", torch.Tensor([3]))
-
+        self.lattice=getattr(args,"lattice", False)
         self.dropout_module = FairseqDropout(
             args.dropout, module_name=self.__class__.__name__
         )
@@ -403,7 +405,21 @@ class TransformerEncoder(FairseqEncoder):
         if self.quant_noise is not None:
             x = self.quant_noise(x)
         return x, embed
-
+    def forward_embedding_no_pos(
+        self, src_tokens, token_embedding: Optional[torch.Tensor] = None
+    ):
+        # embed tokens and positions
+        if token_embedding is None:
+            token_embedding = self.embed_tokens(src_tokens)
+        x = embed = self.embed_scale * token_embedding
+        if self.embed_positions is not None:
+            x = embed
+        if self.layernorm_embedding is not None:
+            x = self.layernorm_embedding(x)
+        x = self.dropout_module(x)
+        if self.quant_noise is not None:
+            x = self.quant_noise(x)
+        return x, embed
     def forward(
         self,
         src_tokens,
@@ -476,8 +492,13 @@ class TransformerEncoder(FairseqEncoder):
         # compute padding mask
         encoder_padding_mask = src_tokens.eq(self.padding_idx)
         has_pads = (src_tokens.device.type == "xla" or encoder_padding_mask.any())
+        if self.lattice:
+            x, encoder_embedding = self.forward_embedding_no_pos(src_tokens, token_embeddings)
+            pos_s,pos_e = utils.make_relative_positions(
+            src_tokens, self.padding_idx,dictionary=self.dictionary)
 
-        x, encoder_embedding = self.forward_embedding(src_tokens, token_embeddings)
+        else:
+            x, encoder_embedding = self.forward_embedding(src_tokens, token_embeddings)
 
         # account for padding while computing the representation
         if encoder_padding_mask is not None:
@@ -493,9 +514,11 @@ class TransformerEncoder(FairseqEncoder):
 
         # encoder layers
         for layer in self.layers:
-            x = layer(
-                x, encoder_padding_mask=encoder_padding_mask if has_pads else None
-            )
+            if self.lattice:
+                x = layer(x, encoder_padding_mask, pos_s=pos_s,pos_e=pos_e)
+
+            else:
+                x = layer(x, encoder_padding_mask)
             if return_all_hiddens:
                 assert encoder_states is not None
                 encoder_states.append(x)
