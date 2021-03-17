@@ -274,12 +274,13 @@ def make_relative_positions(tensor, padding_idx: int, onnx_trace: bool = False, 
 
             # logging.info(tok)
             if tok.item() != padding_idx:
+               # logging.info(dictionary.symbols[tok.item()])
                 if in_constraint:
                     num_choice_tokens += 1
 
-                    if tok.item() == 220000:  # [
+                    if dictionary.symbols[tok.item()] == "▁<vstart>":  # start variant
                         choice_offset = 0
-                    elif tok.item == 2300000:  # ]
+                    elif dictionary.symbols[tok.item()] == "▁<vend>":  # end variant
                         choice_offset = 0
                         max_len_in_constraint = max(choice_offset, max_len_in_constraint)
 
@@ -290,10 +291,10 @@ def make_relative_positions(tensor, padding_idx: int, onnx_trace: bool = False, 
                     positions_end[si][ti] = current_start_pos
                     current_start_pos += 1
 
-                if tok.item() == 24000000:
+                if  dictionary.symbols[tok.item()] == "▁<cstart>": # start constraint
                     in_constraint = True
                     max_len_in_constraint = 0
-                elif tok.item() == 2500000000:
+                elif dictionary.symbols[tok.item()] == "▁<cend>": #end constraint
                     in_constraint = False
                     for i in range(
                             num_choice_tokens + 1):  # this sets the end position for all the choices to the value which would the longest choice have, +1 for }

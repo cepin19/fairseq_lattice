@@ -29,7 +29,7 @@ from fairseq.modules import (
 from fairseq.modules.checkpoint_activations import checkpoint_wrapper
 from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
 from torch import Tensor
-
+import logging
 def get_embedding(max_seq_len, embedding_dim, padding_idx=None, rel_pos_init=0):
     """Build sinusoidal embeddings.
     This matches the implementation in tensor2tensor, but differs slightly
@@ -528,6 +528,7 @@ class TransformerEncoder(FairseqEncoder):
             src_tokens, self.padding_idx,dictionary=self.dictionary)
             #pos_s=pos_e = utils.make_positions(
             #src_tokens, self.padding_idx)
+            #logging.warning(pos_e)
             pos_ss = pos_s.unsqueeze(-1) - pos_s.unsqueeze(-2)
             pos_se = pos_s.unsqueeze(-1) - pos_e.unsqueeze(-2)
             pos_es = pos_e.unsqueeze(-1) - pos_s.unsqueeze(-2)
@@ -702,12 +703,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         self.embed_tokens = embed_tokens
 
         self.embed_scale = 1.0 if args.no_scale_embedding else math.sqrt(embed_dim)
-        if self.lattice=="asd":
-            # pe = self.embed_tokens.weight
-            pe = get_embedding(args.max_source_positions, embed_dim, rel_pos_init=0)
-            self.pe = nn.Parameter(pe, requires_grad=False)
-            self.pos_fusion_forward = nn.Sequential(nn.Linear(4 * embed_dim, embed_dim),
-                                                    nn.ReLU(inplace=True))
+       
         if not args.adaptive_input and args.quant_noise_pq > 0:
             self.quant_noise = apply_quant_noise_(
                 nn.Linear(embed_dim, embed_dim, bias=False),
@@ -802,6 +798,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
     def forward(
         self,
         prev_output_tokens,
+            rel_pos_embeddings:Optional[Tensor]=None,
         encoder_out: Optional[Dict[str, List[Tensor]]] = None,
         incremental_state: Optional[Dict[str, Dict[str, Optional[Tensor]]]] = None,
         features_only: bool = False,
